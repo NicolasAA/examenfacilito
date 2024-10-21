@@ -1,0 +1,3 @@
+C:/Users/LENOVO/CLionProjects/facilito1/cmake-build-debug/CMakeFiles/facilito1.dir
+C:/Users/LENOVO/CLionProjects/facilito1/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/LENOVO/CLionProjects/facilito1/cmake-build-debug/CMakeFiles/rebuild_cache.dir
