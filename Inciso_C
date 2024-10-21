@@ -1,0 +1,90 @@
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <vector>
+
+using namespace std;
+
+const int N = 5;  // Tamaño de la cola circular
+vector<string> buffer(N);  // Buffer circular
+int front = 0, rear = 0, count = 0;  // Punteros y contador para la cola circular
+
+// Definir mutex y variables de condición
+mutex mtx;
+condition_variable bufferLleno;
+condition_variable bufferVacio;
+
+// Función para insertar en la cola circular
+void entrar_msg(string mensaje) {
+    buffer[rear] = mensaje;
+    rear = (rear + 1) % N;  // Incrementa de manera circular
+    count++;
+    cout << "Mensaje insertado en el buffer: " << mensaje << endl;
+}
+
+// Función para remover de la cola circular
+void remover_msg(string &mensaje) {
+    mensaje = buffer[front];
+    front = (front + 1) % N;  // Incrementa de manera circular
+    count--;
+    cout << "Mensaje removido del buffer: " << mensaje << endl;
+}
+
+// Función para el productor
+void Productor() {
+    string mensaje;
+    while (true) {
+        // Lógica para elegir entre A o B
+        if (rand() % 2 == 0) {
+            mensaje = "A";  // Genera A
+        } else {
+            mensaje = "B";  // Genera B
+        }
+        unique_lock<mutex> lock(mtx);
+        bufferVacio.wait(lock, [] { return count < N; });  // Espera si el buffer está lleno
+
+        entrar_msg(mensaje);  // Inserta A o B en el buffer
+
+        lock.unlock();
+        bufferLleno.notify_one();
+
+        // Luego, insertar C, D, E en secuencia
+        for (auto msg : {"C", "D", "E"}) {
+            unique_lock<mutex> lock(mtx);
+            bufferVacio.wait(lock, [] { return count < N; });
+            entrar_msg(msg);  // Inserta C, D, E secuencialmente
+            lock.unlock();
+            bufferLleno.notify_one();
+        }
+    }
+}
+
+// Función para el consumidor
+void Consumidor() {
+    string mensaje;
+    while (true) {
+        unique_lock<mutex> lock(mtx);
+        bufferLleno.wait(lock, [] { return count > 0; });  // Espera si no hay mensajes
+
+        remover_msg(mensaje);  // Extrae un mensaje del buffer
+
+        lock.unlock();
+        bufferVacio.notify_one();
+
+        // Consumir el mensaje
+        cout << "Consumiendo mensaje: " << mensaje << endl;
+    }
+}
+
+int main() {
+    // Crear hilos de productor y consumidor
+    thread prod(Productor);
+    thread cons(Consumidor);
+
+    // Los hilos trabajan indefinidamente
+    prod.join();
+    cons.join();
+
+    return 0;
+}
